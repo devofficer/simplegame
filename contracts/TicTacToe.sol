@@ -2,7 +2,7 @@
 
 pragma solidity >=0.7.0 <0.9.0;
 
-import "./IERC20.sol";
+// import "./IERC20.sol";
 
 contract TicTacToe {
     
@@ -12,11 +12,14 @@ contract TicTacToe {
     address payable player1;
     address payable player2;
     // IERC20 token;
-    bool gameCreated = false;
+    bool public isCreated = false;
     
+    event gameCreated(address p1);
+    event gameJoint(address p2);
     event winPlayer1();
     event winPlayer2();
     event draw();
+    event didAction(uint position, uint player);
     
     uint turn = 0; // 0 indicates player1's turn while 1 indicates player2's
     
@@ -24,19 +27,23 @@ contract TicTacToe {
     //     token = IERC20(tokenAddress);
     // }
     
-    function createGame() public payable {
+    function createGame() public payable returns (address) {
         player1 = payable(msg.sender);
         betAmount = msg.value;
         require (player1.balance >= betAmount, "Not enough token to create game.");
         // token.transferFrom(player1, address(this), betAmount);
-        gameCreated = true;
+        isCreated = true;
+        emit gameCreated(player1);
+        return player1;
     }
     
-    function joinGame() public payable {
-        require (gameCreated, "Game is not created yet.");
+    function joinGame() public payable returns (address) {
+        require (isCreated, "Game is not created yet.");
         player2 = payable(msg.sender);
         require (player2.balance >= betAmount, "Not enough token to join game.");
         // token.transferFrom(player2, address(this), betAmount);
+        emit gameJoint(player2);
+        return player2;
     }
     
     function endGame(uint _winner) private {
@@ -55,7 +62,7 @@ contract TicTacToe {
         }
         currentMove = 0;
         betAmount = 0;
-        gameCreated = false;
+        isCreated = false;
         for (uint i = 0; i < 9; i++)
             board[i] = 0;
     }
@@ -67,6 +74,7 @@ contract TicTacToe {
         
         currentMove++;
         board[position] = turn + 1;
+        emit didAction(position, turn);
         turn = 1 - turn;
         
         uint winner = checkWinner();
